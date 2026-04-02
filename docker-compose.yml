@@ -1,0 +1,36 @@
+services:
+
+    oracle:
+        image: gvenzl/oracle-xe:21-slim
+        container_name: oracle
+        environment:
+            ORACLE_DATABASE: ASSEMBLYVOTE
+            ORACLE_PASSWORD: oracle
+            APP_USER: appuser
+            APP_USER_PASSWORD: passwd
+        ports:
+            - "1521:1521"
+            - "5500:5500"
+        volumes:
+            - oracle-data:/opt/oracle/oradata
+        networks:
+            - backend
+
+    redis:
+        image: redis:7-alpine
+        container_name: redis
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis-data:/data
+        networks:
+            - backend
+
+volumes:
+    oracle-data:
+    redis-data:
+    rabbitmq-data:
+
+networks:
+    backend:
+        driver: bridge

@@ -1,4 +1,4 @@
-package br.com.sicred.assemblyvote.controller.handler;
+package br.com.sicred.assemblyvote.api.handler;
 
 import lombok.Builder;
 import lombok.Data;
