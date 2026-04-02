@@ -1,4 +1,4 @@
-package br.com.sicred.assemblyvote.controller.handler;
+package br.com.sicred.assemblyvote.api.handler;
 
 import br.com.sicred.assemblyvote.exception.AbstractException;
 import jakarta.servlet.http.HttpServletRequest;
