@@ -1,10 +1,10 @@
 package br.com.sicred.assemblyvote.api.controller;
 
-import br.com.sicred.assemblyvote.api.controller.dto.request.AgendaRequest;
-import br.com.sicred.assemblyvote.api.controller.dto.response.CreateAgendaResponse;
+import br.com.sicred.assemblyvote.api.controller.dto.request.VotingSessionRequest;
+import br.com.sicred.assemblyvote.api.controller.dto.response.VotingSessionResponse;
 import br.com.sicred.assemblyvote.api.handler.CustomControllerAdvice;
 import br.com.sicred.assemblyvote.fixture.Fixture;
-import br.com.sicred.assemblyvote.service.AgendaService;
+import br.com.sicred.assemblyvote.service.SessionVoteService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.UUID;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,11 +29,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(AgendaController.class)
+@WebMvcTest(SessionVoteController.class)
 @Import(CustomControllerAdvice.class)
-class AgendaEntityControllerTest {
+class SessionVoteControllerTest {
 
-    private static final String BASE_PATH = "/v1/agendas";
+    private static final String BASE_PATH = "/v1/session-vote/";
+    private static final String CREATE_SESSION = "agenda/{agendaId}";
 
     @Autowired
     private MockMvc mockMvc;
@@ -40,44 +43,48 @@ class AgendaEntityControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private AgendaService agendaService;
+    private SessionVoteService sessionVoteService;
 
-    private AgendaRequest mockRequest;
-    private CreateAgendaResponse mockResponse;
+    private VotingSessionRequest mockRequest;
+    private VotingSessionResponse mockResponse;
+    private UUID agendaId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        mockRequest = Fixture.make(AgendaRequest.class);
-        mockResponse = Fixture.make(CreateAgendaResponse.class);
+        mockRequest = Fixture.make(VotingSessionRequest.class);
+        mockResponse = Fixture.make(VotingSessionResponse.class);
     }
 
     @Test
     @WithMockUser
-    void shouldCreateAgenda() throws Exception {
-        when(agendaService.createAgenda(any(AgendaRequest.class))).thenReturn(mockResponse);
+    void shouldOpenSession() throws Exception {
+        when(sessionVoteService.openSession(any(UUID.class), any(VotingSessionRequest.class))).thenReturn(mockResponse);
 
-        mockMvc.perform(post(BASE_PATH)
+        mockMvc.perform(post(BASE_PATH + CREATE_SESSION, agendaId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .with(csrf())
             .content(objectMapper.writeValueAsString(mockRequest)))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.agendaId").value(mockResponse.agendaId().toString()));
+            .andExpect(jsonPath("$.sessionId").value(mockResponse.sessionId().toString()))
+            .andExpect(jsonPath("$.agendaTitle").value(mockResponse.agendaTitle()))
+            .andExpect(jsonPath("$.status").value(mockResponse.status().name()))
+            .andExpect(jsonPath("$.startTime").value(mockResponse.startTime().toString()));
 
-        verify(agendaService, times(1)).createAgenda(any(AgendaRequest.class));
+        verify(sessionVoteService, times(1)).openSession(any(UUID.class), any(VotingSessionRequest.class));
     }
 
     @Test
     @WithMockUser
-    void shouldntCreateAgendaWithBadRequest() throws Exception {
-        final var mockedRequestError = AgendaRequest.builder().build();
+    void shouldntOpenSessionWithBadRequest() throws Exception {
+        final var mockedRequestError = VotingSessionRequest.builder().durationSeconds(600L).build();
 
-        mockMvc.perform(post(BASE_PATH)
+        mockMvc.perform(post(BASE_PATH + CREATE_SESSION, agendaId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .with(csrf())
                 .content(objectMapper.writeValueAsString(mockedRequestError)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
 
-        verifyNoInteractions(agendaService);
+        verifyNoInteractions(sessionVoteService);
     }
 }
