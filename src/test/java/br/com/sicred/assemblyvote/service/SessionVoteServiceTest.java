@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -70,7 +71,7 @@ class SessionVoteServiceTest {
         when(agendaRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockAgenda));
         when(redisRepository.existsById(any(UUID.class))).thenReturn(false);
         when(sessionRepository.save(any(VotingSessionEntity.class))).thenReturn(mockSessionEntity);
-        when(sessionMapper.toRedis(any(VotingSessionRequest.class), any(UUID.class))).thenReturn(Fixture.make(SessionRedis.class));
+        when(sessionMapper.toRedis(anyLong(), any(UUID.class))).thenReturn(Fixture.make(SessionRedis.class));
 
         final var response = sessionVoteService.openSession(UUID.randomUUID(), mockRequest);
 
@@ -78,7 +79,7 @@ class SessionVoteServiceTest {
         verify(agendaRepository, times(1)).findById(any(UUID.class));
         verify(redisRepository, times(1)).existsById(any(UUID.class));
         verify(sessionRepository, times(1)).save(any(VotingSessionEntity.class));
-        verify(sessionMapper, times(1)).toRedis(any(VotingSessionRequest.class), any(UUID.class));
+        verify(sessionMapper, times(1)).toRedis(anyLong(), any(UUID.class));
         verify(sessionMapper, times(1)).toResponse(any(VotingSessionEntity.class));
     }
 

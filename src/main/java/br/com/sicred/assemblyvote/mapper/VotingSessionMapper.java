@@ -1,6 +1,5 @@
 package br.com.sicred.assemblyvote.mapper;
 
-import br.com.sicred.assemblyvote.api.controller.dto.request.VotingSessionRequest;
 import br.com.sicred.assemblyvote.api.controller.dto.response.VotingSessionResponse;
 import br.com.sicred.assemblyvote.cache.model.SessionRedis;
 import br.com.sicred.assemblyvote.domain.model.AgendaEntity;
@@ -18,8 +17,8 @@ public interface VotingSessionMapper {
     @Mapping(target = "agenda", source = "agenda")
     @Mapping(target = "startTime", source = "startTime")
     @Mapping(target = "endTime", source = "endTime")
-    VotingSessionEntity toEntity(VotingSessionRequest request,
-                                 AgendaEntity agenda,
+    @Mapping(target = "status", expression = "java(br.com.sicred.assemblyvote.domain.model.SessionStatus.OPEN)")
+    VotingSessionEntity toEntity(AgendaEntity agenda,
                                  LocalDateTime startTime,
                                  LocalDateTime endTime);
 
@@ -27,6 +26,6 @@ public interface VotingSessionMapper {
     VotingSessionResponse toResponse(VotingSessionEntity entity);
 
     @Mapping(target = "agendaId", source = "agendaId")
-    @Mapping(target = "ttl", source = "request.durationSeconds")
-    SessionRedis toRedis(VotingSessionRequest request, UUID agendaId);
+    @Mapping(target = "ttl", source = "ttl")
+    SessionRedis toRedis(Long ttl, UUID agendaId);
 }

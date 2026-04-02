@@ -1,7 +1,6 @@
 package br.com.sicred.assemblyvote.cache.model;
 
 
-import br.com.sicred.assemblyvote.domain.model.SessionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,8 +20,6 @@ public class SessionRedis {
     @Id
     @Indexed
     private UUID agendaId;
-
-    private SessionStatus status;
 
     @TimeToLive
     private Long ttl;

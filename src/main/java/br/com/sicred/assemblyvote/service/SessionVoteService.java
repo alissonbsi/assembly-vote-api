@@ -3,7 +3,6 @@ package br.com.sicred.assemblyvote.service;
 import br.com.sicred.assemblyvote.api.controller.dto.request.VotingSessionRequest;
 import br.com.sicred.assemblyvote.api.controller.dto.response.VotingSessionResponse;
 import br.com.sicred.assemblyvote.cache.repository.SessionRedisRepository;
-import br.com.sicred.assemblyvote.domain.model.AgendaEntity;
 import br.com.sicred.assemblyvote.domain.repository.AgendaRepository;
 import br.com.sicred.assemblyvote.domain.repository.VotingSessionRepository;
 import br.com.sicred.assemblyvote.exception.BusinessException;
@@ -34,15 +33,18 @@ public class SessionVoteService {
     public VotingSessionResponse openSession(final UUID agendaId, final VotingSessionRequest request) {
         log.debug("Opening session - [agendaId={} and request={}]", agendaId, request);
 
-        final var agenda = validateSession(agendaId);
+        final var agenda = agendaRepository.findById(agendaId)
+            .orElseThrow(() -> new NotFoundException("Agenda not found for id: " + agendaId));
+
+        validateSession(agendaId);
 
         final var duration = resolveDuration(request);
 
         final var startTime = LocalDateTime.now();
-        LocalDateTime endTime = startTime.plusSeconds(duration);
+        final var endTime = startTime.plusSeconds(duration);
 
-        final var sessionEntity = sessionMapper.toEntity(request, agenda, startTime, endTime);
-        final var sessionRedis = sessionMapper.toRedis(request, agendaId);
+        final var sessionEntity = sessionMapper.toEntity(agenda, startTime, endTime);
+        final var sessionRedis = sessionMapper.toRedis(request.durationSeconds(), agendaId);
 
         final var sessionSaved = sessionRepository.save(sessionEntity);
         redisRepository.save(sessionRedis);
@@ -57,17 +59,12 @@ public class SessionVoteService {
         return sessionRepository.closeExpiredSessions(LocalDateTime.now());
     }
 
-    private AgendaEntity validateSession(final UUID agendaId) {
-        final var agenda = agendaRepository.findById(agendaId)
-            .orElseThrow(() -> new NotFoundException("Agenda not found for id: " + agendaId));
-
+    private void validateSession(final UUID agendaId) {
         final var existsSessionOpened = redisRepository.existsById(agendaId);
 
         if (existsSessionOpened) {
             throw new BusinessException("Agenda already has an open session");
         }
-
-        return agenda;
     }
 
     private Long resolveDuration(VotingSessionRequest request){

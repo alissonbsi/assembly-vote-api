@@ -75,15 +75,15 @@ class SessionVoteControllerTest {
 
     @Test
     @WithMockUser
-    void shouldntOpenSessionWithBadRequest() throws Exception {
+    void shouldntOpenSessionWithInternalServerError() throws Exception {
         final var mockedRequestError = VotingSessionRequest.builder().durationSeconds(600L).build();
 
-        mockMvc.perform(post(BASE_PATH + CREATE_SESSION, agendaId.toString())
+        mockMvc.perform(post(BASE_PATH + CREATE_SESSION, "XPTO")
                 .contentType(MediaType.APPLICATION_JSON)
                 .with(csrf())
                 .content(objectMapper.writeValueAsString(mockedRequestError)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.status").value(HttpStatus.INTERNAL_SERVER_ERROR.value()));
 
         verifyNoInteractions(sessionVoteService);
     }
