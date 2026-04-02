@@ -37,6 +37,7 @@
 		<mapstruct.version>1.5.5.Final</mapstruct.version>
 		<flyway.core.version>10.22.0</flyway.core.version>
 		<flyway.oracle.version>10.22.0</flyway.oracle.version>
+		<instancio.version>5.2.1</instancio.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -148,6 +149,20 @@
 			<groupId>org.mapstruct</groupId>
 			<artifactId>mapstruct</artifactId>
 			<version>${mapstruct.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jeasy</groupId>
+			<artifactId>easy-random-core</artifactId>
+			<version>5.0.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.instancio</groupId>
+			<artifactId>instancio-core</artifactId>
+			<version>${instancio.version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 

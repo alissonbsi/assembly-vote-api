@@ -15,7 +15,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "agenda")
 @Data
-public class Agenda {
+public class AgendaEntity {
 
     @Id
     @GeneratedValue(generator = "uuid2")
