@@ -1,10 +1,10 @@
-package br.com.realizecfi.bffrpcustomeracquisition.web.controller;
+package br.com.sicred.assemblyvote.api.controller;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(scanBasePackages = {
-    "br.com.realizecfi.bffrpcustomeracquisition.web.controller",
-    "br.com.realizecfi.bffrpcustomeracquisition.service"
+    "br.com.sicred.assemblyvote.api.controller",
+    "br.com.sicred.assemblyvote.service"
 })
 class ControllerContext {
 }

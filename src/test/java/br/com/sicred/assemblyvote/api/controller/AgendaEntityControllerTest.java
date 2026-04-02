@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AgendaController.class)
 @Import(CustomControllerAdvice.class)
-class AgendaControllerTest {
+class AgendaEntityControllerTest {
 
     private static final String BASE_PATH = "/v1/agendas";
 

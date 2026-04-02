@@ -1,4 +1,4 @@
-package br.com.realizecfi.bffrpcustomeracquisition.fixture;
+package br.com.sicred.assemblyvote.fixture;
 
 import lombok.SneakyThrows;
 import org.instancio.Instancio;
@@ -15,19 +15,6 @@ import java.util.TimeZone;
 
 /**
  * Classe utilitária usada para a geração de Fixtures (Objetos preenchidos com dados aleatórios).
- *
- * Exemplos de uso: Para retornar um objeto preenchido que tenha padrão Builder:
- * Response = Fixture.make(Response.builder().build());
- *
- * Para retornar um objeto preenchido que tenha padrão de Setter/Construtor vazio:
- * Response = Fixture.make(newResponse());
- *
- * Também é possível retornar um builder:
- *
- * Response.ResponseBuilder = Fixture.make(Response.builder());
- *
- * Este builder retorna com todos os atributos preenchidos, e é possível sobreescrever os atributos que quiser antes de
- * dar o .build();
  */
 public class Fixture {
 
@@ -62,7 +49,6 @@ public class Fixture {
         @Override
         @SneakyThrows
         public XMLGregorianCalendar getRandomValue() {
-            // This will generate a dateTime value with this pattern: 2021-08-06T12:59:39.151
             return DatatypeFactory.newInstance()
                 .newXMLGregorianCalendar(
                     (GregorianCalendar) GregorianCalendar.getInstance(TimeZone.getTimeZone(ZoneId.systemDefault()))
