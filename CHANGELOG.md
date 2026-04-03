@@ -6,3 +6,4 @@
 - Adicionado serviço de criação de pauta
 - Adicionado serviço de abertura de sessão
 - Adicionado serviço de votação
+- Adicionado serviço que retorna o resultado da votação
