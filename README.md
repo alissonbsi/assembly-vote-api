@@ -46,6 +46,9 @@ Antes de rodar a aplicação, é necessário ter instalado:
 hospedagem free, logo seus recursos são limitados e baixos. A primeira chamada na requisição pode demorar um pouco.
 Claramente em um ambiente de Prod isso não aconteceria visto os recursos utilizados.
 
+Caso julgue necessário vc pode subir a aplicação que encontra-se em [validate-member-api](https://github.com/alissonbsi/validate-member).
+Mas vale ressaltar que o código está básico.
+
 ---
 
 ## 2. Subindo o ambiente de banco e cache
