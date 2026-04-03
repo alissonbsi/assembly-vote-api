@@ -1,5 +1,6 @@
 package br.com.sicred.assemblyvote.api.controller;
 
+import br.com.sicred.assemblyvote.api.controller.dto.request.VoteRequest;
 import br.com.sicred.assemblyvote.api.controller.dto.request.VotingSessionRequest;
 import br.com.sicred.assemblyvote.api.controller.dto.response.VotingSessionResponse;
 import br.com.sicred.assemblyvote.service.SessionVoteService;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+import static org.springframework.http.HttpStatus.ACCEPTED;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RequiredArgsConstructor
@@ -29,5 +31,13 @@ public class SessionVoteController implements SessionVoteApi {
     public VotingSessionResponse openSession(@Valid @RequestBody final VotingSessionRequest request,
                                              @PathVariable(value = "agendaId") final UUID agendaId) {
         return sessionService.openSession(agendaId, request);
+    }
+
+    @Override
+    @PostMapping("agenda/{agendaId}/vote")
+    @ResponseStatus(ACCEPTED)
+    public void receiveVote(@Valid @RequestBody final VoteRequest request,
+                            @PathVariable(value = "agendaId") final UUID agendaId) {
+        sessionService.voteSession(agendaId, request);
     }
 }

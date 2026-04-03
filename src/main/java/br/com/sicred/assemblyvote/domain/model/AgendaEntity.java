@@ -12,7 +12,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -37,5 +37,8 @@ public class AgendaEntity {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "agenda", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<VotingSessionEntity> sessions;
+    private Set<VotingSessionEntity> sessions;
+
+    @OneToMany(mappedBy = "agenda", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<VoteEntity> votes;
 }

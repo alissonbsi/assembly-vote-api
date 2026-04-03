@@ -1,6 +1,7 @@
 package br.com.sicred.assemblyvote.api.handler;
 
 import br.com.sicred.assemblyvote.exception.AbstractException;
+import br.com.sicred.assemblyvote.exception.CustomFeignClientException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 @ControllerAdvice
 @RequiredArgsConstructor
@@ -56,6 +58,16 @@ public class CustomControllerAdvice {
                 .errors(errors)
                 .build()
             );
+    }
+
+    @ExceptionHandler(CustomFeignClientException.class)
+    public ResponseEntity<CustomErrorResponse> handle(final HttpServletRequest request,
+                                                      final CustomFeignClientException exception) {
+        final var httpStatus = HttpStatus.valueOf(exception.getStatus());
+
+        final var errorResponse = buildErrorResponse(httpStatus, request, exception);
+
+        return new ResponseEntity<>(errorResponse, httpStatus);
     }
 
     @ExceptionHandler(Exception.class)
@@ -121,5 +133,31 @@ public class CustomControllerAdvice {
 
     private String getTraceId() {
         return MDC.get("traceId");
+    }
+
+    private CustomErrorResponse buildErrorResponse(final HttpStatus httpStatus,
+                                                   final HttpServletRequest request,
+                                                   final Exception exception) {
+        return CustomErrorResponse.builder()
+            .timestamp(Instant.now())
+            .path(request.getServletPath())
+            .method(request.getMethod())
+            .origin(application)
+            .status(httpStatus.value())
+            .code(resolveCode(exception))
+            .message(exception.getMessage())
+            .trace(getTraceId())
+            .span(getSpanId())
+            .build();
+    }
+
+    private String resolveCode(Exception exception) {
+        if (exception instanceof AbstractException ae && Objects.nonNull(ae.getCode())) {
+            return ae.getCode();
+        } else if (exception instanceof CustomFeignClientException ce && Objects.nonNull(ce.getCode())) {
+            return ce.getCode();
+        }
+
+        return HttpStatus.INTERNAL_SERVER_ERROR.name();
     }
 }

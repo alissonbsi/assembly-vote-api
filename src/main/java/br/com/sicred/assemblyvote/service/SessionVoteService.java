@@ -1,12 +1,19 @@
 package br.com.sicred.assemblyvote.service;
 
+import br.com.sicred.assemblyvote.api.controller.dto.request.VoteRequest;
 import br.com.sicred.assemblyvote.api.controller.dto.request.VotingSessionRequest;
 import br.com.sicred.assemblyvote.api.controller.dto.response.VotingSessionResponse;
 import br.com.sicred.assemblyvote.cache.repository.SessionRedisRepository;
+import br.com.sicred.assemblyvote.client.ValidateMemberClient;
+import br.com.sicred.assemblyvote.client.response.StatusMember;
+import br.com.sicred.assemblyvote.domain.model.AgendaEntity;
 import br.com.sicred.assemblyvote.domain.repository.AgendaRepository;
+import br.com.sicred.assemblyvote.domain.repository.VoteRepository;
 import br.com.sicred.assemblyvote.domain.repository.VotingSessionRepository;
 import br.com.sicred.assemblyvote.exception.BusinessException;
 import br.com.sicred.assemblyvote.exception.NotFoundException;
+import br.com.sicred.assemblyvote.exception.ServerErrorException;
+import br.com.sicred.assemblyvote.mapper.VoteMapper;
 import br.com.sicred.assemblyvote.mapper.VotingSessionMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -29,14 +36,16 @@ public class SessionVoteService {
     private final AgendaRepository agendaRepository;
     private final VotingSessionMapper sessionMapper;
     private final SessionRedisRepository redisRepository;
+    private final VoteRepository voteRepository;
+    private final VoteMapper voteMapper;
+    private final ValidateMemberClient client;
 
     public VotingSessionResponse openSession(final UUID agendaId, final VotingSessionRequest request) {
         log.debug("Opening session - [agendaId={} and request={}]", agendaId, request);
 
-        final var agenda = agendaRepository.findById(agendaId)
-            .orElseThrow(() -> new NotFoundException("Agenda not found for id: " + agendaId));
+        final var agenda = fetchAgenda(agendaId);
 
-        validateSession(agendaId);
+        existsSessionOpened(agendaId);
 
         final var duration = resolveDuration(request);
 
@@ -53,18 +62,63 @@ public class SessionVoteService {
     }
 
     @Transactional
-    public int closeExpiredSessions() {
+    public Integer closeExpiredSessions() {
         log.debug("Closing sessions older than {}", LocalDateTime.now());
 
         return sessionRepository.closeExpiredSessions(LocalDateTime.now());
     }
 
-    private void validateSession(final UUID agendaId) {
+    @Transactional
+    public void voteSession(final UUID agendaId, final VoteRequest request) {
+        log.info("VoteSession - [agendaId={}, request={}]", agendaId, request);
+
+        final var agenda = fetchAgenda(agendaId);
+
+        validateVoteMember(agenda, request.cpf());
+
+        try {
+            voteRepository.save(voteMapper.toEntity(request, agenda));
+        } catch (final Exception e) {
+            log.error("Error when voting for CPF {} - {}", request.cpf(), e.getMessage());
+            throw new ServerErrorException(e.getMessage());
+        }
+
+        log.info("Vote successfully counted - [agendaId={}, request={}]", agendaId, request);
+    }
+
+    private void existsSessionOpened(final UUID agendaId) {
         final var existsSessionOpened = redisRepository.existsById(agendaId);
 
         if (existsSessionOpened) {
             throw new BusinessException("Agenda already has an open session");
         }
+    }
+
+    private void validateVoteMember(final AgendaEntity agenda, final String cpf) {
+        if (!isSessionOpened(agenda.getAgendaId())) {
+            log.warn("Agenda is not opened - [agendaId={}]", agenda.getAgendaId());
+            throw new BusinessException("Agenda is not opened");
+        }
+
+        final var memberStatus = client.getStatus(cpf);
+
+        if(StatusMember.UNABLE_TO_VOTE == memberStatus.status()) {
+            log.warn("Member unabled to vote - [agendaId={}, cpd={}]", agenda.getAgendaId(), cpf);
+            throw new BusinessException("Member unabled to vote!");
+        }
+
+        if (hasUserAlreadyVote(agenda, cpf)) {
+            log.warn("Agenda {} is already voted for user cpf {}", agenda.getAgendaId(), cpf);
+            throw new BusinessException("User has already voted on this agenda");
+        }
+    }
+
+    private boolean isSessionOpened(final UUID agendaId) {
+        return redisRepository.existsById(agendaId);
+    }
+
+    private boolean hasUserAlreadyVote(final AgendaEntity agenda, final String cpf) {
+        return voteRepository.existsByAgendaAndMemberCpf(agenda, cpf);
     }
 
     private Long resolveDuration(VotingSessionRequest request){
@@ -73,5 +127,10 @@ public class SessionVoteService {
         }
 
         return request.durationSeconds();
+    }
+
+    private AgendaEntity fetchAgenda(final UUID agendaId) {
+        return agendaRepository.findById(agendaId)
+            .orElseThrow(() -> new NotFoundException("Agenda not found for id: " + agendaId));
     }
 }
