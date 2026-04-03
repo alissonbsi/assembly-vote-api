@@ -29,7 +29,6 @@ services:
 volumes:
     oracle-data:
     redis-data:
-    rabbitmq-data:
 
 networks:
     backend:
