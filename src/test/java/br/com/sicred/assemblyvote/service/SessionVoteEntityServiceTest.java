@@ -7,8 +7,11 @@ import br.com.sicred.assemblyvote.client.ValidateMemberClient;
 import br.com.sicred.assemblyvote.client.response.DocumentStatusResponse;
 import br.com.sicred.assemblyvote.client.response.StatusMember;
 import br.com.sicred.assemblyvote.domain.model.AgendaEntity;
+import br.com.sicred.assemblyvote.domain.model.Result;
+import br.com.sicred.assemblyvote.domain.model.VoteOption;
 import br.com.sicred.assemblyvote.domain.model.VotingSessionEntity;
 import br.com.sicred.assemblyvote.domain.repository.AgendaRepository;
+import br.com.sicred.assemblyvote.domain.repository.VoteCountProjection;
 import br.com.sicred.assemblyvote.domain.repository.VoteRepository;
 import br.com.sicred.assemblyvote.domain.repository.VotingSessionRepository;
 import br.com.sicred.assemblyvote.exception.BusinessException;
@@ -160,7 +163,7 @@ class SessionVoteEntityServiceTest {
 
         assertThatThrownBy(() -> sessionVoteService.voteSession(UUID.randomUUID(), mockVoteRequest))
             .isInstanceOf(BusinessException.class)
-            .hasMessageContaining("Member unabled to vote!");
+            .hasMessageContaining("Member unable to vote");
 
         verify(agendaRepository, times(1)).findById(any(UUID.class));
         verify(redisRepository, times(1)).existsById(any(UUID.class));
@@ -175,7 +178,7 @@ class SessionVoteEntityServiceTest {
 
         assertThatThrownBy(() -> sessionVoteService.voteSession(UUID.randomUUID(), mockVoteRequest))
             .isInstanceOf(BusinessException.class)
-            .hasMessageContaining("Agenda is not opened");
+            .hasMessageContaining("Session is not open");
 
         verify(agendaRepository, times(1)).findById(any(UUID.class));
         verify(redisRepository, times(1)).existsById(any(UUID.class));
@@ -191,7 +194,7 @@ class SessionVoteEntityServiceTest {
 
         assertThatThrownBy(() -> sessionVoteService.voteSession(UUID.randomUUID(), mockVoteRequest))
             .isInstanceOf(BusinessException.class)
-            .hasMessageContaining("User has already voted on this agenda");
+            .hasMessageContaining("User has already voted");
 
         verify(voteRepository, times(1)).existsByAgendaAndMemberCpf(any(AgendaEntity.class), any());
         verify(agendaRepository, times(1)).findById(any(UUID.class));
@@ -199,5 +202,107 @@ class SessionVoteEntityServiceTest {
         verify(client, times(1)).getStatus(anyString());
         verifyNoInteractions(voteMapper);
         verifyNoMoreInteractions(voteRepository);
+    }
+
+    @Test
+    void shouldReturnApprovedResult() {
+        final var agendaId = UUID.randomUUID();
+
+        when(redisRepository.existsById(any(UUID.class))).thenReturn(false);
+        when(agendaRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockAgenda));
+
+        when(voteRepository.countVotesByAgenda(any(AgendaEntity.class)))
+            .thenReturn(java.util.List.of(
+                projection(VoteOption.YES, 10L),
+                projection(VoteOption.NO, 5L)
+            ));
+
+        final var response = sessionVoteService.resultVotation(agendaId);
+
+        assertNotNull(response);
+        assertEquals(Result.APPROVED, response.result());
+
+        verify(redisRepository, times(1)).existsById(any(UUID.class));
+        verify(agendaRepository, times(1)).findById(any(UUID.class));
+        verify(voteRepository, times(1)).countVotesByAgenda(any(AgendaEntity.class));
+    }
+
+    @Test
+    void shouldReturnRejectedResult() {
+        final var agendaId = UUID.randomUUID();
+
+        when(redisRepository.existsById(any(UUID.class))).thenReturn(false);
+        when(agendaRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockAgenda));
+
+        when(voteRepository.countVotesByAgenda(any(AgendaEntity.class)))
+            .thenReturn(java.util.List.of(
+                projection(VoteOption.YES, 3L),
+                projection(VoteOption.NO, 8L)
+            ));
+
+        final var response = sessionVoteService.resultVotation(agendaId);
+
+        assertEquals(Result.REJECTED, response.result());
+    }
+
+    @Test
+    void shouldReturnTiedResult() {
+        final var agendaId = UUID.randomUUID();
+
+        when(redisRepository.existsById(any(UUID.class))).thenReturn(false);
+        when(agendaRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockAgenda));
+
+        when(voteRepository.countVotesByAgenda(any(AgendaEntity.class)))
+            .thenReturn(java.util.List.of(
+                projection(VoteOption.YES, 5L),
+                projection(VoteOption.NO, 5L)
+            ));
+
+        final var response = sessionVoteService.resultVotation(agendaId);
+
+        assertEquals(Result.TIED, response.result());
+    }
+
+    @Test
+    void shouldReturnTiedWhenNoVotes() {
+        final var agendaId = UUID.randomUUID();
+
+        when(redisRepository.existsById(any(UUID.class))).thenReturn(false);
+        when(agendaRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockAgenda));
+
+        when(voteRepository.countVotesByAgenda(any(AgendaEntity.class)))
+            .thenReturn(java.util.Collections.emptyList());
+
+        final var response = sessionVoteService.resultVotation(agendaId);
+
+        assertEquals(Result.TIED, response.result());
+    }
+
+    @Test
+    void shouldThrowBusinessExceptionWhenSessionStillOpen() {
+        final var agendaId = UUID.randomUUID();
+
+        when(redisRepository.existsById(any(UUID.class))).thenReturn(true);
+
+        assertThatThrownBy(() -> sessionVoteService.resultVotation(agendaId))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("Session is still open");
+
+        verify(redisRepository, times(1)).existsById(any(UUID.class));
+        verifyNoInteractions(agendaRepository, voteRepository);
+    }
+
+    private VoteCountProjection projection(VoteOption vote, Long total) {
+        return new VoteCountProjection() {
+            @Override
+            public VoteOption getVote() {
+                return vote;
+            }
+
+            @Override
+            public long getTotal() {
+                return total;
+            }
+        };
     }
 }
