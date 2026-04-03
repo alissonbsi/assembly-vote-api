@@ -2,6 +2,7 @@ package br.com.sicred.assemblyvote.api.controller;
 
 import br.com.sicred.assemblyvote.api.controller.dto.request.VoteRequest;
 import br.com.sicred.assemblyvote.api.controller.dto.request.VotingSessionRequest;
+import br.com.sicred.assemblyvote.api.controller.dto.response.ResultVoteResponse;
 import br.com.sicred.assemblyvote.api.controller.dto.response.VotingSessionResponse;
 import br.com.sicred.assemblyvote.api.handler.CustomControllerAdvice;
 import br.com.sicred.assemblyvote.domain.model.VoteOption;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -40,6 +42,7 @@ class SessionVoteControllerTest {
     private static final String BASE_PATH = "/v1/session-vote/";
     private static final String CREATE_SESSION = "agenda/{agendaId}";
     private static final String SEND_VOTE = "agenda/{agendaId}/vote";
+    private static final String GET_RESULT = "agenda/{agendaId}/vote/result";
 
     @Autowired
     private MockMvc mockMvc;
@@ -53,13 +56,13 @@ class SessionVoteControllerTest {
     private VotingSessionRequest mockSessionRequest;
     private VotingSessionResponse mockSessionResponse;
     private UUID agendaId = UUID.randomUUID();
-    private VoteRequest voteRequest;
+    private ResultVoteResponse mockResultVoteResponse;
 
     @BeforeEach
     void setUp() {
         mockSessionRequest = Fixture.make(VotingSessionRequest.class);
         mockSessionResponse = Fixture.make(VotingSessionResponse.class);
-        voteRequest = Fixture.make(VoteRequest.class);
+        mockResultVoteResponse = Fixture.make(ResultVoteResponse.class);
     }
 
     @Test
@@ -125,5 +128,21 @@ class SessionVoteControllerTest {
 
 
         verifyNoInteractions(sessionVoteService);
+    }
+
+    @Test
+    @WithMockUser
+    void shouldResultVotation() throws Exception {
+        when(sessionVoteService.resultVotation(any(UUID.class))).thenReturn(mockResultVoteResponse);
+
+        mockMvc.perform(get(BASE_PATH + GET_RESULT, agendaId.toString())
+                .with(csrf()))
+            .andExpect(status().isOk())
+        .andExpect(jsonPath("$.agendaId").value(mockResultVoteResponse.agendaId().toString()))
+        .andExpect(jsonPath("$.sessionId").value(mockResultVoteResponse.sessionId().toString()))
+        .andExpect(jsonPath("$.title").value(mockResultVoteResponse.title().toString()))
+        .andExpect(jsonPath("$.result").value(mockResultVoteResponse.result().toString()));
+
+        verify(sessionVoteService,  times(1)).resultVotation(any(UUID.class));
     }
 }
