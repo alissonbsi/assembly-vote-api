@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>br.com.sicred</groupId>
 	<artifactId>assembly-vote</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<properties>
 		<java.version>21</java.version>
 		<spring.open.api.version>2.2.0</spring.open.api.version>
